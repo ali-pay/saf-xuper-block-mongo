@@ -1,0 +1,6 @@
+{
+    "Type": "BLOCK",
+	"Args": {
+		"data": "{\"bcname\":\"xuper\", \"proposer\":\"QjcTPfrbgCDUR1P3cNLDd57YceZm8QX3h\", \"start_height\": 1, \"end_height\": 100000000, \"need_content\": true }"
+	}
+}

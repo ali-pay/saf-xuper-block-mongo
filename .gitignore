@@ -1,0 +1,27 @@
+# Compiled source
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.d
+
+# OSX trash
+.DS_Store
+
+# vim
+.*.sw*
+
+# vscode
+.vscode
+
+# Go test binaries
+*.test
+
+# idea
+.idea
+
+.null
+xuperdata*
+!vendor/*
