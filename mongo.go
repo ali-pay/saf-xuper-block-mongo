@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 
 	"github.com/wxnacy/wgo/arrays"
@@ -14,6 +15,72 @@ import (
 )
 
 var accounts bson.A
+
+type Count struct {
+	ID        primitive.ObjectID `bson:"_id,omitempty"`
+	TxCount   int64              `bson:"tx_count"`   //交易总数
+	CoinCount int64              `bson:"coin_count"` //全网金额
+	AccCount  int64              `bson:"acc_count"`  //账户总数
+	Accounts  []bson.D           `bson:"accounts"`   //账户列表
+}
+
+var counts *Count
+
+func (m *MongoClient) SaveCount(txs []*utils.Transaction) error {
+	countCol := m.Database.Collection("count")
+
+	//获取已有数据,缓存起来
+	if counts == nil {
+		err := countCol.FindOne(m.ctx, bson.M{"_id": "counts"}).Decode(counts)
+		if err != nil && err != mongo.ErrNoDocuments {
+			return err
+		}
+	}
+
+	for _, tx := range txs {
+
+		//统计交易总数
+		counts.TxCount++
+
+		//统计全网金额
+		if tx.Coinbase || tx.VoteCoinbase {
+			for _, output := range tx.TxOutputs {
+				counts.CoinCount += output.Amount
+			}
+		}
+
+		//统计账户
+		for _, txOutput := range tx.TxOutputs {
+			if txOutput.ToAddr == "$" {
+				continue
+			}
+			i := arrays.Contains(counts.Accounts, txOutput.ToAddr)
+			if i == -1 {
+				//统计账户总数
+				counts.AccCount++
+				//缓存账户
+				counts.Accounts = append(counts.Accounts, bson.D{{"accounts", txOutput.ToAddr}})
+				//写入数据库
+				_, err := countCol.InsertOne(m.ctx, bson.D{{"accounts", txOutput.ToAddr}})
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	up := true
+	_, err := countCol.UpdateOne(m.ctx,
+		bson.M{"_id": "counts"},
+		&bson.D{{"$set", bson.D{
+			{"tx_count", counts.TxCount},
+			{"coin_count", counts.CoinCount},
+			{"acc_count", counts.AccCount},
+		}}},
+		&options.UpdateOptions{Upsert: &up})
+
+	return err
+}
 
 func (m *MongoClient) SaveAccount(txs []*utils.Transaction) error {
 
