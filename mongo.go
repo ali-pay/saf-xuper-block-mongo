@@ -57,8 +57,25 @@ func (m *MongoClient) SaveAccount(txs []*utils.Transaction) error {
 		}
 	}
 
-	//记录账户交易
+	//记录交易
 	sampleTxs := []interface{}{}
+
+	//遍历交易
+	for _, tx := range txs {
+		sampleTxs = append(sampleTxs, bson.D{
+			{"_id", tx.Txid},
+			{"blockid", tx.Blockid},
+			{"timestamp", tx.Timestamp},
+			{"initiator", tx.Initiator},
+			{"txInputs", tx.TxInputs},
+			{"txOutputs", tx.TxOutputs},
+			{"coinbase", tx.Coinbase},
+			{"voteCoinbase", tx.VoteCoinbase}, //todo 需要修改pb文件
+		})
+	}
+
+	//记录账户交易
+	//sampleTxs := []interface{}{}
 	for _, tx := range txs {
 
 		//记录转账人
@@ -66,9 +83,20 @@ func (m *MongoClient) SaveAccount(txs []*utils.Transaction) error {
 			sampleTxs = append(sampleTxs, bson.D{
 				{"account", tx.Initiator},
 				{"timestamp", tx.Timestamp},
+				//{"tx", bson.D{
+				//	{"$ref", "tx"},
+				//	{"$id", tx.Txid},
+				//},
+				//},
 				{"tx", bson.D{
-					{"$ref", "tx"},
-					{"$id", tx.Txid},
+					{"_id", tx.Txid},
+					{"blockid", tx.Blockid},
+					{"timestamp", tx.Timestamp},
+					{"initiator", tx.Initiator},
+					{"txInputs", tx.TxInputs},
+					{"txOutputs", tx.TxOutputs},
+					{"coinbase", tx.Coinbase},
+					{"voteCoinbase", tx.VoteCoinbase}, //todo 需要修改pb文件
 				},
 				},
 			})
@@ -83,9 +111,20 @@ func (m *MongoClient) SaveAccount(txs []*utils.Transaction) error {
 			sampleTxs = append(sampleTxs, bson.D{
 				{"account", output.ToAddr},
 				{"timestamp", tx.Timestamp},
+				//{"tx", bson.D{
+				//	{"$ref", "tx"},
+				//	{"$id", tx.Txid},
+				//},
+				//},
 				{"tx", bson.D{
-					{"$ref", "tx"},
-					{"$id", tx.Txid},
+					{"_id", tx.Txid},
+					{"blockid", tx.Blockid},
+					{"timestamp", tx.Timestamp},
+					{"initiator", tx.Initiator},
+					{"txInputs", tx.TxInputs},
+					{"txOutputs", tx.TxOutputs},
+					{"coinbase", tx.Coinbase},
+					{"voteCoinbase", tx.VoteCoinbase}, //todo 需要修改pb文件
 				},
 				},
 			})
@@ -110,11 +149,29 @@ func (m *MongoClient) SaveBlock(block *utils.InternalBlock) error {
 		return err
 	}
 
-	txids := []bson.D{}
-	for _, v := range block.Transactions {
-		txids = append(txids, bson.D{
-			{"$ref", "tx"},
-			{"$id", v.Txid},
+	//txids := []bson.D{}
+	//for _, v := range block.Transactions {
+	//	txids = append(txids, bson.D{
+	//		{"$ref", "tx"},
+	//		{"$id", v.Txid},
+	//	})
+	//}
+
+	//记录交易
+	sampleTxs := []interface{}{}
+
+	//遍历交易
+	for _, tx := range block.Transactions {
+		sampleTxs = append(sampleTxs, bson.D{
+			{"_id", tx.Txid},
+			{"blockid", tx.Blockid},
+			{"blockHeight", block.Height},
+			{"timestamp", tx.Timestamp},
+			{"initiator", tx.Initiator},
+			{"txInputs", tx.TxInputs},
+			{"txOutputs", tx.TxOutputs},
+			{"coinbase", tx.Coinbase},
+			{"voteCoinbase", tx.VoteCoinbase}, //todo 需要修改pb文件
 		})
 	}
 
@@ -122,7 +179,8 @@ func (m *MongoClient) SaveBlock(block *utils.InternalBlock) error {
 		{"_id", block.Height},
 		{"blockid", block.Blockid},
 		{"proposer", block.Proposer},
-		{"transactions", txids},
+		//{"transactions", txids},
+		{"transactions", sampleTxs},
 		{"txCount", block.TxCount},
 		{"preHash", block.PreHash},
 		{"inTrunk", block.InTrunk},
