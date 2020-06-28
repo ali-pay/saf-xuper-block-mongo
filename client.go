@@ -182,6 +182,9 @@ func (cmd *PubsubClientCommand) Subscribe() {
 		return
 	}
 
+	//上一次的事件id,避免输出太多重复数据
+	tempID := ""
+
 	for {
 		reply, err := stream.Recv()
 		if err != nil {
@@ -194,7 +197,10 @@ func (cmd *PubsubClientCommand) Subscribe() {
 
 		eventType := reply.GetType()
 		payload := reply.GetPayload()
-		fmt.Println("eventID:", reply.GetId())
+		if tempID != reply.GetId() {
+			tempID = reply.GetId()
+			fmt.Println("eventID:", reply.GetId())
+		}
 		if pb.EventType_name[int32(eventType)] != requestType {
 			fmt.Println("get unexpected msg, refuse to accept it")
 			continue
@@ -216,7 +222,7 @@ func (cmd *PubsubClientCommand) Subscribe() {
 			if unmarshalErr != nil {
 				continue
 			}
-			fmt.Println("I am BlockEvent")
+			//fmt.Println("I am BlockEvent")
 			//fmt.Println("status:", reply.GetBlockStatus())
 			//fmt.Println("payload", test.GetBlock())
 

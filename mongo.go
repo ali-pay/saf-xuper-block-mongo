@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 
 	"github.com/wxnacy/wgo/arrays"
@@ -14,14 +13,12 @@ import (
 	"github.com/jason-cn-dev/xuperdata/utils"
 )
 
-var accounts bson.A
-
 type Count struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty"`
-	TxCount   int64              `bson:"tx_count"`   //交易总数
-	CoinCount int64              `bson:"coin_count"` //全网金额
-	AccCount  int64              `bson:"acc_count"`  //账户总数
-	Accounts  []bson.D           `bson:"accounts"`   //账户列表
+	//ID        primitive.ObjectID `bson:"_id,omitempty"`
+	TxCount   int64  `bson:"tx_count"`   //交易总数
+	CoinCount int64  `bson:"coin_count"` //全网金额
+	AccCount  int64  `bson:"acc_count"`  //账户总数
+	Accounts  bson.A `bson:"accounts"`   //账户列表
 }
 
 var counts *Count
@@ -31,14 +28,31 @@ func (m *MongoClient) SaveCount(txs []*utils.Transaction) error {
 
 	//获取已有数据,缓存起来
 	if counts == nil {
-		err := countCol.FindOne(m.ctx, bson.M{"_id": "counts"}).Decode(counts)
+		counts = &Count{}
+
+		//id必须有12个字节
+		//获取统计数
+		err := countCol.FindOne(m.ctx, bson.M{"_id": "counts123456"}).Decode(counts)
 		if err != nil && err != mongo.ErrNoDocuments {
 			return err
+		}
+
+		//获取账户地址
+		cursor, err := countCol.Find(m.ctx, bson.M{"_id": bson.M{"$ne": "counts123456"}})
+		if err != nil && err != mongo.ErrNoDocuments {
+			return err
+		}
+		if cursor != nil {
+			err = cursor.All(m.ctx, &counts.Accounts)
+		}
+
+		//过滤key,减小体积
+		for i, v := range counts.Accounts {
+			counts.Accounts[i] = v.(bson.D).Map()["_id"]
 		}
 	}
 
 	for _, tx := range txs {
-
 		//统计交易总数
 		counts.TxCount++
 
@@ -58,10 +72,15 @@ func (m *MongoClient) SaveCount(txs []*utils.Transaction) error {
 			if i == -1 {
 				//统计账户总数
 				counts.AccCount++
+
 				//缓存账户
-				counts.Accounts = append(counts.Accounts, bson.D{{"accounts", txOutput.ToAddr}})
+				counts.Accounts = append(counts.Accounts, txOutput.ToAddr)
+
 				//写入数据库
-				_, err := countCol.InsertOne(m.ctx, bson.D{{"accounts", txOutput.ToAddr}})
+				_, err := countCol.InsertOne(m.ctx, bson.D{
+					{"_id", txOutput.ToAddr},
+					{"timestamp", tx.Timestamp},
+				})
 				if err != nil {
 					return err
 				}
@@ -71,7 +90,7 @@ func (m *MongoClient) SaveCount(txs []*utils.Transaction) error {
 
 	up := true
 	_, err := countCol.UpdateOne(m.ctx,
-		bson.M{"_id": "counts"},
+		bson.M{"_id": "counts123456"},
 		&bson.D{{"$set", bson.D{
 			{"tx_count", counts.TxCount},
 			{"coin_count", counts.CoinCount},
@@ -86,68 +105,14 @@ func (m *MongoClient) SaveAccount(txs []*utils.Transaction) error {
 
 	accCol := m.Database.Collection("account")
 
-	//获取已有账户,缓存起来
-	var accountDoc bson.D
-	if len(accounts) == 0 {
-		err := accCol.FindOne(m.ctx, bson.M{"_id": "accounts"}).Decode(&accountDoc)
-		if err != nil && err != mongo.ErrNoDocuments {
-			return err
-		}
-		if accountDoc != nil {
-			accounts = accountDoc.Map()["accounts"].(bson.A)
-		}
-	}
-
-	//是否需要保存新的账户
-	needSave := false
-	for _, tx := range txs {
-		for _, txOutput := range tx.TxOutputs {
-			if txOutput.ToAddr == "$" {
-				continue
-			}
-			i := arrays.Contains(accounts, txOutput.ToAddr)
-			if i == -1 {
-				accounts = append(accounts, txOutput.ToAddr)
-				needSave = true
-			}
-		}
-	}
-	if needSave {
-		needSave = false
-		a := true
-		_, err := accCol.UpdateOne(m.ctx,
-			bson.M{"_id": "accounts"},
-			&bson.D{{"$set", bson.D{{"accounts", accounts}}}},
-			&options.UpdateOptions{Upsert: &a})
-		if err != nil {
-			return err
-		}
-	}
-
-	//记录交易
-	sampleTxs := []interface{}{}
-
-	//遍历交易
-	for _, tx := range txs {
-		sampleTxs = append(sampleTxs, bson.D{
-			{"_id", tx.Txid},
-			{"blockid", tx.Blockid},
-			{"timestamp", tx.Timestamp},
-			{"initiator", tx.Initiator},
-			{"txInputs", tx.TxInputs},
-			{"txOutputs", tx.TxOutputs},
-			{"coinbase", tx.Coinbase},
-			{"voteCoinbase", tx.VoteCoinbase}, //todo 需要修改pb文件
-		})
-	}
-
 	//记录账户交易
-	//sampleTxs := []interface{}{}
+	sampleTxs := []interface{}{}
 	for _, tx := range txs {
 
 		//记录转账人
 		if tx.Initiator != "" {
 			sampleTxs = append(sampleTxs, bson.D{
+				//{"_id", tx.Timestamp},
 				{"account", tx.Initiator},
 				{"timestamp", tx.Timestamp},
 				//{"tx", bson.D{
@@ -176,6 +141,7 @@ func (m *MongoClient) SaveAccount(txs []*utils.Transaction) error {
 				continue
 			}
 			sampleTxs = append(sampleTxs, bson.D{
+				//{"_id", tx.Timestamp},
 				{"account", output.ToAddr},
 				{"timestamp", tx.Timestamp},
 				//{"tx", bson.D{
@@ -204,8 +170,14 @@ func (m *MongoClient) SaveAccount(txs []*utils.Transaction) error {
 
 func (m *MongoClient) SaveBlock(block *utils.InternalBlock) error {
 
+	//存统计
+	err := m.SaveCount(block.Transactions)
+	if err != nil {
+		return err
+	}
+
 	//存账户
-	err := m.SaveAccount(block.Transactions)
+	err = m.SaveAccount(block.Transactions)
 	if err != nil {
 		return err
 	}
@@ -252,7 +224,7 @@ func (m *MongoClient) SaveBlock(block *utils.InternalBlock) error {
 		{"preHash", block.PreHash},
 		{"inTrunk", block.InTrunk},
 		{"timestamp", block.Timestamp},
-		{"failedTxs", block.FailedTxs},
+		//{"failedTxs", block.FailedTxs},
 	}
 
 	blockCol := m.Database.Collection("block")
