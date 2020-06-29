@@ -59,7 +59,7 @@ func (cmd *PubsubClientCommand) addFlags() {
 	flag.StringVar(&cmd.Command, "c", "subscribe", "option: subscribe|unsubscribe")
 	flag.StringVar(&cmd.EventID, "id", "000", "eventID to unsubscribe")
 	flag.StringVar(&cmd.DestIP, "h", "localhost:37101", "xchain node")
-	flag.StringVar(&cmd.DataSource, "s", "mongodb://192.168.3.150:27017", "mongodb data source")
+	flag.StringVar(&cmd.DataSource, "s", "mongodb://localhost:27017", "mongodb data source")
 	flag.StringVar(&cmd.Database, "d", "jy_chain", "mongodb database")
 	flag.Parse()
 }
@@ -257,12 +257,12 @@ func (cmd *PubsubClientCommand) Subscribe() {
 
 func main() {
 	cmd := &PubsubClientCommand{
-		//DescFile:   "json/block.json",
-		//Command:    "subscribe",
-		//EventID:    "000",
-		//DestIP:     ":37101",
-		//DataSource: "mongodb://192.168.3.150:27017",
-		//Database:   "jy_chain_test",
+		DescFile:   "json/block.json",
+		Command:    "subscribe",
+		EventID:    "000",
+		DestIP:     ":37101",
+		DataSource: "mongodb://192.168.3.150:27017",
+		Database:   "jy_chain_test",
 	}
 	cmd.addFlags()
 

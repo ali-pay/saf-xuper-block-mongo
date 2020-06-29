@@ -25,6 +25,7 @@ var counts *Count
 
 func (m *MongoClient) SaveCount(txs []*utils.Transaction) error {
 	countCol := m.Database.Collection("count")
+	accCol := m.Database.Collection("account")
 
 	//获取已有数据,缓存起来
 	if counts == nil {
@@ -32,13 +33,13 @@ func (m *MongoClient) SaveCount(txs []*utils.Transaction) error {
 
 		//id必须有12个字节
 		//获取统计数
-		err := countCol.FindOne(m.ctx, bson.M{"_id": "counts123456"}).Decode(counts)
+		err := countCol.FindOne(m.ctx, bson.M{"_id": "chain_count"}).Decode(counts)
 		if err != nil && err != mongo.ErrNoDocuments {
 			return err
 		}
 
 		//获取账户地址
-		cursor, err := countCol.Find(m.ctx, bson.M{"_id": bson.M{"$ne": "counts123456"}})
+		cursor, err := accCol.Find(m.ctx, bson.M{})
 		if err != nil && err != mongo.ErrNoDocuments {
 			return err
 		}
@@ -77,7 +78,7 @@ func (m *MongoClient) SaveCount(txs []*utils.Transaction) error {
 				counts.Accounts = append(counts.Accounts, txOutput.ToAddr)
 
 				//写入数据库
-				_, err := countCol.InsertOne(m.ctx, bson.D{
+				_, err := accCol.InsertOne(m.ctx, bson.D{
 					{"_id", txOutput.ToAddr},
 					{"timestamp", tx.Timestamp},
 				})
@@ -90,7 +91,7 @@ func (m *MongoClient) SaveCount(txs []*utils.Transaction) error {
 
 	up := true
 	_, err := countCol.UpdateOne(m.ctx,
-		bson.M{"_id": "counts123456"},
+		bson.M{"_id": "chain_count"},
 		&bson.D{{"$set", bson.D{
 			{"tx_count", counts.TxCount},
 			{"coin_count", counts.CoinCount},
@@ -98,73 +99,6 @@ func (m *MongoClient) SaveCount(txs []*utils.Transaction) error {
 		}}},
 		&options.UpdateOptions{Upsert: &up})
 
-	return err
-}
-
-func (m *MongoClient) SaveAccount(txs []*utils.Transaction) error {
-
-	accCol := m.Database.Collection("account")
-
-	//记录账户交易
-	sampleTxs := []interface{}{}
-	for _, tx := range txs {
-
-		//记录转账人
-		if tx.Initiator != "" {
-			sampleTxs = append(sampleTxs, bson.D{
-				//{"_id", tx.Timestamp},
-				{"account", tx.Initiator},
-				{"timestamp", tx.Timestamp},
-				//{"tx", bson.D{
-				//	{"$ref", "tx"},
-				//	{"$id", tx.Txid},
-				//},
-				//},
-				{"tx", bson.D{
-					{"_id", tx.Txid},
-					{"blockid", tx.Blockid},
-					{"timestamp", tx.Timestamp},
-					{"initiator", tx.Initiator},
-					{"txInputs", tx.TxInputs},
-					{"txOutputs", tx.TxOutputs},
-					{"coinbase", tx.Coinbase},
-					{"voteCoinbase", tx.VoteCoinbase}, //todo 需要修改pb文件
-				},
-				},
-			})
-		}
-
-		//记录收款人
-		for _, output := range tx.TxOutputs {
-			to := output.ToAddr
-			if to == "$" || to == tx.Initiator {
-				continue
-			}
-			sampleTxs = append(sampleTxs, bson.D{
-				//{"_id", tx.Timestamp},
-				{"account", output.ToAddr},
-				{"timestamp", tx.Timestamp},
-				//{"tx", bson.D{
-				//	{"$ref", "tx"},
-				//	{"$id", tx.Txid},
-				//},
-				//},
-				{"tx", bson.D{
-					{"_id", tx.Txid},
-					{"blockid", tx.Blockid},
-					{"timestamp", tx.Timestamp},
-					{"initiator", tx.Initiator},
-					{"txInputs", tx.TxInputs},
-					{"txOutputs", tx.TxOutputs},
-					{"coinbase", tx.Coinbase},
-					{"voteCoinbase", tx.VoteCoinbase}, //todo 需要修改pb文件
-				},
-				},
-			})
-		}
-	}
-
-	_, err := accCol.InsertMany(m.ctx, sampleTxs)
 	return err
 }
 
@@ -176,41 +110,17 @@ func (m *MongoClient) SaveBlock(block *utils.InternalBlock) error {
 		return err
 	}
 
-	//存账户
-	err = m.SaveAccount(block.Transactions)
-	if err != nil {
-		return err
-	}
-
 	//存交易
 	err = m.SaveTx(block.Height, block.Transactions)
 	if err != nil {
 		return err
 	}
 
-	//txids := []bson.D{}
-	//for _, v := range block.Transactions {
-	//	txids = append(txids, bson.D{
-	//		{"$ref", "tx"},
-	//		{"$id", v.Txid},
-	//	})
-	//}
-
-	//记录交易
-	sampleTxs := []interface{}{}
-
-	//遍历交易
-	for _, tx := range block.Transactions {
-		sampleTxs = append(sampleTxs, bson.D{
-			{"_id", tx.Txid},
-			{"blockid", tx.Blockid},
-			{"blockHeight", block.Height},
-			{"timestamp", tx.Timestamp},
-			{"initiator", tx.Initiator},
-			{"txInputs", tx.TxInputs},
-			{"txOutputs", tx.TxOutputs},
-			{"coinbase", tx.Coinbase},
-			{"voteCoinbase", tx.VoteCoinbase}, //todo 需要修改pb文件
+	txids := []bson.D{}
+	for _, v := range block.Transactions {
+		txids = append(txids, bson.D{
+			{"$ref", "tx"},
+			{"$id", v.Txid},
 		})
 	}
 
@@ -218,13 +128,11 @@ func (m *MongoClient) SaveBlock(block *utils.InternalBlock) error {
 		{"_id", block.Height},
 		{"blockid", block.Blockid},
 		{"proposer", block.Proposer},
-		//{"transactions", txids},
-		{"transactions", sampleTxs},
+		{"transactions", txids},
 		{"txCount", block.TxCount},
 		{"preHash", block.PreHash},
 		{"inTrunk", block.InTrunk},
 		{"timestamp", block.Timestamp},
-		//{"failedTxs", block.FailedTxs},
 	}
 
 	blockCol := m.Database.Collection("block")
