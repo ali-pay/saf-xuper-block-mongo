@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/wxnacy/wgo/arrays"
@@ -60,7 +61,7 @@ func (m *MongoClient) SaveCount(txs []*utils.Transaction) error {
 		//统计全网金额
 		if tx.Coinbase || tx.VoteCoinbase {
 			for _, output := range tx.TxOutputs {
-				counts.CoinCount += output.Amount
+				counts.CoinCount += (*big.Int)(&output.Amount).Int64()
 			}
 		}
 

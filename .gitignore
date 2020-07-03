@@ -23,5 +23,5 @@
 .idea
 
 .null
-xuperdata*
-!vendor/*
+xuperdata
+!vendor/

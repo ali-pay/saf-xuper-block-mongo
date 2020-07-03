@@ -1,5 +1,3 @@
-# github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
-github.com/btcsuite/btcutil/base58
 # github.com/go-stack/stack v1.8.0
 github.com/go-stack/stack
 # github.com/golang/protobuf v1.4.2
@@ -20,6 +18,10 @@ github.com/golang/snappy
 github.com/grpc-ecosystem/grpc-gateway/internal
 github.com/grpc-ecosystem/grpc-gateway/runtime
 github.com/grpc-ecosystem/grpc-gateway/utilities
+# github.com/jason-cn-dev/xuper-sdk-go v0.0.0-20200702084447-1434ac0714c8
+github.com/jason-cn-dev/xuper-sdk-go/crypto
+github.com/jason-cn-dev/xuper-sdk-go/pb
+github.com/jason-cn-dev/xuper-sdk-go/txhash
 # github.com/klauspost/compress v1.9.5
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
@@ -34,20 +36,31 @@ github.com/wxnacy/wgo/arrays
 github.com/xdg/scram
 # github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc
 github.com/xdg/stringprep
+# github.com/xuperchain/crypto v0.0.0-20200518095800-1d73ac7c9747
+github.com/xuperchain/crypto/client/service/xchain
+github.com/xuperchain/crypto/core/account
+github.com/xuperchain/crypto/core/aes
+github.com/xuperchain/crypto/core/base58
+github.com/xuperchain/crypto/core/common
+github.com/xuperchain/crypto/core/config
+github.com/xuperchain/crypto/core/ecies
+github.com/xuperchain/crypto/core/ecies/libecies
+github.com/xuperchain/crypto/core/hash
+github.com/xuperchain/crypto/core/hdwallet/api
+github.com/xuperchain/crypto/core/hdwallet/key
+github.com/xuperchain/crypto/core/hdwallet/keychain
+github.com/xuperchain/crypto/core/hdwallet/rand
+github.com/xuperchain/crypto/core/hdwallet/wordlist
+github.com/xuperchain/crypto/core/multisign
+github.com/xuperchain/crypto/core/schnorr_ring_sign
+github.com/xuperchain/crypto/core/schnorr_sign
+github.com/xuperchain/crypto/core/secret_share/big_polynomial
+github.com/xuperchain/crypto/core/secret_share/complex_secret_share
+github.com/xuperchain/crypto/core/sign
+github.com/xuperchain/crypto/core/signature
+github.com/xuperchain/crypto/core/utils
 # github.com/xuperchain/xuperchain v0.0.0-20200622115201-a820d3eb4cfe
-github.com/xuperchain/xuperchain/core/crypto/account
-github.com/xuperchain/xuperchain/core/crypto/aes/ecb
-github.com/xuperchain/xuperchain/core/crypto/aes/padding
-github.com/xuperchain/xuperchain/core/crypto/client/base
-github.com/xuperchain/xuperchain/core/crypto/common
-github.com/xuperchain/xuperchain/core/crypto/config
-github.com/xuperchain/xuperchain/core/crypto/hash
-github.com/xuperchain/xuperchain/core/crypto/multisign
-github.com/xuperchain/xuperchain/core/crypto/utils
-github.com/xuperchain/xuperchain/core/hdwallet/rand
-github.com/xuperchain/xuperchain/core/hdwallet/wordlist
 github.com/xuperchain/xuperchain/core/pb
-github.com/xuperchain/xuperchain/core/utxo/txhash
 # go.mongodb.org/mongo-driver v1.3.4
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
@@ -80,7 +93,7 @@ go.mongodb.org/mongo-driver/x/mongo/driver/session
 go.mongodb.org/mongo-driver/x/mongo/driver/topology
 go.mongodb.org/mongo-driver/x/mongo/driver/uuid
 go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage
-# golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad
+# golang.org/x/crypto v0.0.0-20200320181102-891825fb96df
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/ripemd160
 # golang.org/x/net v0.0.0-20200602114024-627f9648deb9
@@ -100,7 +113,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# google.golang.org/genproto v0.0.0-20190927181202-20e1ac93f88c
+# google.golang.org/genproto v0.0.0-20200608115520-7c474a2e3482
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/status
@@ -146,7 +159,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.23.0
+# google.golang.org/protobuf v1.24.0
 google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
@@ -180,6 +193,7 @@ google.golang.org/protobuf/runtime/protoimpl
 google.golang.org/protobuf/types/descriptorpb
 google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb
+google.golang.org/protobuf/types/known/fieldmaskpb
 google.golang.org/protobuf/types/known/timestamppb
 google.golang.org/protobuf/types/known/wrapperspb
 google.golang.org/protobuf/types/pluginpb
