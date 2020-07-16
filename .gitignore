@@ -24,4 +24,5 @@
 
 .null
 xuperdata
-!vendor/
+!vendor/*
+*.zip

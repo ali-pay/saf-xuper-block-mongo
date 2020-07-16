@@ -21,21 +21,21 @@ func (h HexID) MarshalJSON() ([]byte, error) {
 }
 
 type TxInput struct {
-	RefTxid   HexID  `json:"refTxid,omitempty"`
+	RefTxid   string  `json:"refTxid,omitempty"`
 	RefOffset int32  `json:"refOffset,omitempty"`
 	FromAddr  string `json:"fromAddr,omitempty"`
-	Amount    BigInt `json:"amount,omitempty"`
+	Amount    int64 `json:"amount,omitempty"`
 }
 
 type TxOutput struct {
-	Amount BigInt `json:"amount,omitempty"`
+	Amount int64 `json:"amount,omitempty"`
 	ToAddr string `json:"toAddr,omitempty"`
 }
 
 type TxInputExt struct {
 	Bucket    string `json:"bucket,omitempty"`
 	Key       string `json:"key,omitempty"`
-	RefTxid   HexID  `json:"refTxid,omitempty"`
+	RefTxid   string  `json:"refTxid,omitempty"`
 	RefOffset int32  `json:"refOffset,omitempty"`
 }
 
@@ -67,7 +67,7 @@ type GasPrice struct {
 
 type SignatureInfo struct {
 	PublicKey string `json:"publickey,omitempty"`
-	Sign      HexID  `json:"sign,omitempty"`
+	Sign      string  `json:"sign,omitempty"`
 }
 
 type QCState int32
@@ -91,8 +91,8 @@ type QuorumCert struct {
 }
 
 type Transaction struct {
-	Txid              HexID            `json:"txid,omitempty"`
-	Blockid           HexID            `json:"blockid,omitempty"`
+	Txid              string            `json:"txid,omitempty"`
+	Blockid           string            `json:"blockid,omitempty"`
 	TxInputs          []TxInput        `json:"txInputs,omitempty"`
 	TxOutputs         []TxOutput       `json:"txOutputs,omitempty"`
 	Desc              string           `json:"desc,omitempty"`
@@ -135,7 +135,7 @@ func (b *BigInt) MarshalJSON() ([]byte, error) {
 //精简了获取的交易数据，在获取状态的时候，尽可能的取消不必要的操作
 func FromPBTx(tx *pb.Transaction) *Transaction {
 	t := &Transaction{
-		Txid:      tx.Txid,
+		Txid:      hex.EncodeToString(tx.Txid),
 		Timestamp: tx.Timestamp,
 	}
 	return t
@@ -143,19 +143,19 @@ func FromPBTx(tx *pb.Transaction) *Transaction {
 
 type InternalBlock struct {
 	Version      int32             `json:"version,omitempty"`
-	Blockid      HexID             `json:"blockid,omitempty"`
-	PreHash      HexID             `json:"preHash,omitempty"`
+	Blockid      string             `json:"blockid,omitempty"`
+	PreHash      string             `json:"preHash,omitempty"`
 	Proposer     string            `json:"proposer,omitempty"`
-	Sign         HexID             `json:"sign,omitempty"`
+	Sign         string             `json:"sign,omitempty"`
 	Pubkey       string            `json:"pubkey,omitempty"`
-	MerkleRoot   HexID             `json:"merkleRoot,omitempty"`
+	MerkleRoot   string             `json:"merkleRoot,omitempty"`
 	Height       int64             `json:"height,omitempty"`
 	Timestamp    int64             `json:"timestamp,omitempty"`
 	Transactions []*Transaction    `json:"transactions,omitempty"`
 	TxCount      int32             `json:"txCount,omitempty"`
-	MerkleTree   []HexID           `json:"merkleTree,omitempty"`
+	MerkleTree   []string           `json:"merkleTree,omitempty"`
 	InTrunk      bool              `json:"inTrunk,omitempty"`
-	NextHash     HexID             `json:"nextHash,omitempty"`
+	NextHash     string             `json:"nextHash,omitempty"`
 	FailedTxs    map[string]string `json:"failedTxs,omitempty"`
 	CurTerm      int64             `json:"curTerm,omitempty"`
 	CurBlockNum  int64             `json:"curBlockNum,omitempty"`
@@ -167,8 +167,8 @@ type InternalBlock struct {
 func FromInternalBlockPB(block *pb.InternalBlock) *InternalBlock {
 	iblock := &InternalBlock{
 		//Version:     block.Version,
-		Blockid:  block.Blockid,
-		PreHash:  block.PreHash,
+		Blockid:  hex.EncodeToString(block.Blockid),
+		PreHash:  hex.EncodeToString(block.PreHash),
 		Proposer: string(block.Proposer),
 		//Sign:        block.Sign,
 		//Pubkey:      string(block.Pubkey),
@@ -184,13 +184,13 @@ func FromInternalBlockPB(block *pb.InternalBlock) *InternalBlock {
 		Nonce:      block.Nonce,
 		TargetBits: block.TargetBits,
 	}
-	//iblock.MerkleTree = make([]HexID, len(block.MerkleTree))
+	//iblock.MerkleTree = make([]string, len(block.MerkleTree))
 	//for i := range block.MerkleTree {
 	//	iblock.MerkleTree[i] = block.MerkleTree[i]
 	//}
 	iblock.Transactions = make([]*Transaction, len(block.Transactions))
 	for i := range block.Transactions {
-		iblock.Transactions[i] = FromPBTx(block.Transactions[i])
+		iblock.Transactions[i] = FullTx(block.Transactions[i])
 	}
 	//iblock.Justify = FromPBJustify(block.Justify)
 	return iblock
@@ -219,13 +219,13 @@ func FromPBJustify(qc *pb.QuorumCert) *QuorumCert {
 }
 
 type LedgerMeta struct {
-	RootBlockid HexID `json:"rootBlockid,omitempty"`
-	TipBlockid  HexID `json:"tipBlockid,omitempty"`
+	RootBlockid string `json:"rootBlockid,omitempty"`
+	TipBlockid  string `json:"tipBlockid,omitempty"`
 	TrunkHeight int64 `json:"trunkHeight,omitempty"`
 }
 
 type UtxoMeta struct {
-	LatestBlockid            HexID           `json:"latestBlockid,omitempty"`
+	LatestBlockid            string           `json:"latestBlockid,omitempty"`
 	LockKeyList              []string        `json:"lockKeyList,omitempty"`
 	UtxoTotal                string          `json:"utxoTotal,omitempty"`
 	AvgDelay                 int64           `json:"avgDelay,omitempty"`
@@ -246,11 +246,11 @@ type ContractStatData struct {
 }
 
 type ChainStatus struct {
-	Name          string         `json:"name,omitempty"`
-	LedgerMeta    LedgerMeta     `json:"ledger,omitempty"`
+	Name       string     `json:"name,omitempty"`
+	LedgerMeta LedgerMeta `json:"ledger,omitempty"`
 	//UtxoMeta      UtxoMeta       `json:"utxo,omitempty"`
 	//BranchBlockid []string       `json:"branchBlockid,omitempty"`
-	Block         *InternalBlock `json:"block,omitempty"` //增加区块数据
+	Block *InternalBlock `json:"block,omitempty"` //增加区块数据
 }
 
 type SystemStatus struct {
@@ -303,8 +303,8 @@ func FromSystemStatusPB(statuspb *pb.SystemsStatus) *SystemStatus {
 		status.ChainStatus = append(status.ChainStatus, ChainStatus{
 			Name: chain.GetBcname(),
 			LedgerMeta: LedgerMeta{
-				RootBlockid: ledgerMeta.GetRootBlockid(),
-				TipBlockid:  ledgerMeta.GetTipBlockid(),
+				RootBlockid: hex.EncodeToString(ledgerMeta.GetRootBlockid()),
+				TipBlockid:  hex.EncodeToString(ledgerMeta.GetTipBlockid()),
 				TrunkHeight: ledgerMeta.GetTrunkHeight(),
 			},
 
@@ -325,7 +325,7 @@ func FromSystemStatusPB(statuspb *pb.SystemsStatus) *SystemStatus {
 			//},
 
 			//BranchBlockid: chain.GetBranchBlockid(),
-			Block:         FromInternalBlockPB(block),
+			Block: FromInternalBlockPB(block),
 		})
 	}
 	status.Peers = statuspb.GetPeerUrls()
@@ -349,8 +349,8 @@ type ContractDesc struct {
 
 func SimpleTx(tx *pb.Transaction) *Transaction {
 	t := &Transaction{
-		Txid:      tx.Txid,
-		Blockid:   tx.Blockid,
+		Txid:      hex.EncodeToString(tx.Txid),
+		Blockid:   hex.EncodeToString(tx.Blockid),
 		Timestamp: tx.Timestamp,
 		Initiator: tx.Initiator,
 		Coinbase:  tx.Coinbase,
@@ -358,10 +358,10 @@ func SimpleTx(tx *pb.Transaction) *Transaction {
 
 	for _, input := range tx.TxInputs {
 		t.TxInputs = append(t.TxInputs, TxInput{
-			RefTxid:   input.RefTxid,
+			RefTxid:   hex.EncodeToString(input.RefTxid),
 			RefOffset: input.RefOffset,
 			FromAddr:  string(input.FromAddr),
-			Amount:    FromAmountBytes(input.Amount),
+			Amount:    big.NewInt(0).SetBytes(input.Amount).Int64(),
 		})
 	}
 
@@ -373,7 +373,7 @@ func SimpleTx(tx *pb.Transaction) *Transaction {
 		//}
 
 		t.TxOutputs = append(t.TxOutputs, TxOutput{
-			Amount: FromAmountBytes(output.Amount),
+			Amount: big.NewInt(0).SetBytes(output.Amount).Int64(),
 			ToAddr: string(output.ToAddr),
 		})
 	}
@@ -384,8 +384,8 @@ func SimpleTxs(txs []*pb.Transaction) []*Transaction {
 	tempTxs := []*Transaction{}
 	for _, tx := range txs {
 		t := &Transaction{
-			Txid:      tx.Txid,
-			Blockid:   tx.Blockid,
+			Txid:      hex.EncodeToString(tx.Txid),
+			Blockid:   hex.EncodeToString(tx.Blockid),
 			Timestamp: tx.Timestamp,
 			Initiator: tx.Initiator,
 			Coinbase:  tx.Coinbase,
@@ -393,10 +393,10 @@ func SimpleTxs(txs []*pb.Transaction) []*Transaction {
 
 		for _, input := range tx.TxInputs {
 			t.TxInputs = append(t.TxInputs, TxInput{
-				RefTxid:   input.RefTxid,
+				RefTxid:   hex.EncodeToString(input.RefTxid),
 				RefOffset: input.RefOffset,
 				FromAddr:  string(input.FromAddr),
-				Amount:    FromAmountBytes(input.Amount),
+				Amount:    big.NewInt(0).SetBytes(input.Amount).Int64(),
 			})
 		}
 
@@ -408,7 +408,7 @@ func SimpleTxs(txs []*pb.Transaction) []*Transaction {
 			//}
 
 			t.TxOutputs = append(t.TxOutputs, TxOutput{
-				Amount: FromAmountBytes(output.Amount),
+				Amount: big.NewInt(0).SetBytes(output.Amount).Int64(),
 				ToAddr: string(output.ToAddr),
 			})
 		}
@@ -419,8 +419,8 @@ func SimpleTxs(txs []*pb.Transaction) []*Transaction {
 
 func SimpleBlock(block *pb.InternalBlock) *InternalBlock {
 	iblock := &InternalBlock{
-		Blockid:   block.Blockid,
-		PreHash:   block.PreHash,
+		Blockid:   hex.EncodeToString(block.Blockid),
+		PreHash:   hex.EncodeToString(block.PreHash),
 		Proposer:  string(block.Proposer),
 		Height:    block.Height,
 		Timestamp: block.Timestamp,
@@ -440,10 +440,10 @@ func SimpleBlocks(blocks []*pb.InternalBlock) []*InternalBlock {
 	for _, v := range blocks {
 		block := &InternalBlock{
 			Height:       v.Height,
-			Blockid:      v.Blockid,
+			Blockid:      hex.EncodeToString(v.Blockid),
 			Timestamp:    v.Timestamp,
 			Proposer:     string(v.Proposer),
-			PreHash:      v.PreHash,
+			PreHash:      hex.EncodeToString(v.PreHash),
 			Transactions: SimpleTxs(v.Transactions),
 			TxCount:      v.TxCount,
 			InTrunk:      v.InTrunk,
@@ -455,8 +455,8 @@ func SimpleBlocks(blocks []*pb.InternalBlock) []*InternalBlock {
 
 func FullTx(tx *pb.Transaction) *Transaction {
 	t := &Transaction{
-		Txid:              tx.Txid,
-		Blockid:           tx.Blockid,
+		Txid:              hex.EncodeToString(tx.Txid),
+		Blockid:           hex.EncodeToString(tx.Blockid),
 		Nonce:             tx.Nonce,
 		Timestamp:         tx.Timestamp,
 		Version:           tx.Version,
@@ -469,15 +469,15 @@ func FullTx(tx *pb.Transaction) *Transaction {
 	}
 	for _, input := range tx.TxInputs {
 		t.TxInputs = append(t.TxInputs, TxInput{
-			RefTxid:   input.RefTxid,
+			RefTxid:   hex.EncodeToString(input.RefTxid),
 			RefOffset: input.RefOffset,
 			FromAddr:  string(input.FromAddr),
-			Amount:    FromAmountBytes(input.Amount),
+			Amount:    big.NewInt(0).SetBytes(input.Amount).Int64(),
 		})
 	}
 	for _, output := range tx.TxOutputs {
 		t.TxOutputs = append(t.TxOutputs, TxOutput{
-			Amount: FromAmountBytes(output.Amount),
+			Amount: big.NewInt(0).SetBytes(output.Amount).Int64(),
 			ToAddr: string(output.ToAddr),
 		})
 	}
@@ -485,7 +485,7 @@ func FullTx(tx *pb.Transaction) *Transaction {
 		t.TxInputsExt = append(t.TxInputsExt, TxInputExt{
 			Bucket:    inputExt.Bucket,
 			Key:       string(inputExt.Key),
-			RefTxid:   inputExt.RefTxid,
+			RefTxid:   hex.EncodeToString(inputExt.RefTxid),
 			RefOffset: inputExt.RefOffset,
 		})
 	}
@@ -532,14 +532,14 @@ func FullTx(tx *pb.Transaction) *Transaction {
 	for _, initsign := range tx.InitiatorSigns {
 		t.InitiatorSigns = append(t.InitiatorSigns, SignatureInfo{
 			PublicKey: initsign.PublicKey,
-			Sign:      initsign.Sign,
+			Sign:      hex.EncodeToString(initsign.Sign),
 		})
 	}
 
 	for _, authSign := range tx.AuthRequireSigns {
 		t.AuthRequireSigns = append(t.AuthRequireSigns, SignatureInfo{
 			PublicKey: authSign.PublicKey,
-			Sign:      authSign.Sign,
+			Sign:      hex.EncodeToString(authSign.Sign),
 		})
 	}
 
@@ -579,4 +579,13 @@ func PrintTx(tx *pb.Transaction) error {
 	}
 	fmt.Println(string(output))
 	return nil
+}
+
+func PrintBlock(block *pb.InternalBlock) {
+	iblock := FromInternalBlockPB(block)
+	output, err := json.MarshalIndent(iblock, "", "  ")
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(string(output))
 }

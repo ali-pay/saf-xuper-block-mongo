@@ -4,16 +4,16 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/jason-cn-dev/xuperdata/utils"
 	"io"
 	"io/ioutil"
 	"log"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/jason-cn-dev/xuper-sdk-go/pb"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	"github.com/xuperchain/xuperchain/core/pb"
+	"github.com/jason-cn-dev/xuperdata/utils"
 )
 
 type Config struct {
@@ -52,15 +52,20 @@ type PubsubClientCommand struct {
 	DestIP     string
 	DataSource string
 	Database   string
+	HttpPort   int
+	Gosize     int
 }
 
+// todo 添加重置数据库功能
 func (cmd *PubsubClientCommand) addFlags() {
 	flag.StringVar(&cmd.DescFile, "f", "json/block.json", "arg file to subscribe an event")
 	flag.StringVar(&cmd.Command, "c", "subscribe", "option: subscribe|unsubscribe")
 	flag.StringVar(&cmd.EventID, "id", "000", "eventID to unsubscribe")
 	flag.StringVar(&cmd.DestIP, "h", "localhost:37101", "xchain node")
 	flag.StringVar(&cmd.DataSource, "s", "mongodb://localhost:27017", "mongodb data source")
-	flag.StringVar(&cmd.Database, "d", "jy_chain", "mongodb database")
+	flag.StringVar(&cmd.Database, "b", "jy_chain", "mongodb database")
+	flag.IntVar(&cmd.HttpPort, "port", 8081, "port of http server")
+	flag.IntVar(&cmd.Gosize, "gosize", 10, "goroutine size of sync block")
 	flag.Parse()
 }
 
@@ -85,6 +90,16 @@ func (cmd *PubsubClientCommand) Unsubscribe() {
 }
 
 func (cmd *PubsubClientCommand) Subscribe() {
+
+	//初始化数据库连接
+	var err error
+	mongoClient, err = NewMongoClient(cmd.DataSource, cmd.Database)
+	if err != nil {
+		log.Println("can't connecting to mongodb, err:", err)
+		return
+	}
+	defer mongoClient.Close()
+
 	data, err := ioutil.ReadFile(cmd.DescFile)
 	if err != nil {
 		fmt.Println("subscribe failed, error:", err)
@@ -104,7 +119,7 @@ func (cmd *PubsubClientCommand) Subscribe() {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println("json:", request)
+	fmt.Println("json file:", request)
 
 	requestArgs := request.Args.Data
 	requestType := request.Type
@@ -130,6 +145,10 @@ func (cmd *PubsubClientCommand) Subscribe() {
 			fmt.Println(requestBytesErr)
 			return
 		}
+
+		node = cmd.DestIP            //节点
+		bcname = requestLocal.Bcname //链名
+
 	case "TRANSACTION":
 		requestLocal := &TransactionEventRequest{}
 		err := json.Unmarshal([]byte(requestArgs), requestLocal)
@@ -226,16 +245,9 @@ func (cmd *PubsubClientCommand) Subscribe() {
 			//fmt.Println("status:", reply.GetBlockStatus())
 			//fmt.Println("payload", test.GetBlock())
 
+			fmt.Println("Recv block:", test.GetBlock().Height)
 			//存数据
-			c, err := NewMongoClient(cmd.DataSource, cmd.Database)
-			if err != nil {
-				log.Println(err)
-			}
-			err = c.SaveBlock(utils.FromInternalBlockPB(test.GetBlock()))
-			if err != nil {
-				log.Println(err)
-			}
-			err = c.Close()
+			err = mongoClient.Save(utils.FromInternalBlockPB(test.GetBlock()))
 			if err != nil {
 				log.Println(err)
 			}
@@ -257,14 +269,19 @@ func (cmd *PubsubClientCommand) Subscribe() {
 
 func main() {
 	cmd := &PubsubClientCommand{
-		DescFile:   "json/block.json",
-		Command:    "subscribe",
-		EventID:    "000",
-		DestIP:     ":37101",
-		DataSource: "mongodb://192.168.3.150:27017",
+		DescFile: "json/block.json",
+		Command:  "subscribe",
+		EventID:  "000",
+		DestIP:   ":37101",
+		//DataSource: "mongodb://192.168.3.150:27017",
+		DataSource: "mongodb://admin:this is mongodb admin password@192.168.3.150:27017",
 		Database:   "jy_chain_test",
+		HttpPort:   8081,
 	}
 	cmd.addFlags()
+
+	port = cmd.HttpPort
+	go run() //开启http服务
 
 	switch cmd.Command {
 	case "subscribe":
