@@ -7,9 +7,9 @@ import (
 )
 
 func TestGetBlockByHeight(t *testing.T) {
-	node = "161.117.39.102:37101"
+	node = ":37101"
 	bcname = "xuper"
-	block, err := GetBlockByHeight(100)
+	block, err := GetBlockByHeight(1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -17,11 +17,11 @@ func TestGetBlockByHeight(t *testing.T) {
 }
 
 func TestGetUtxoTotal(t *testing.T) {
-	node = "161.117.39.102:37101"
+	node = ":37101"
 	bcname = "xuper"
-	total, err := GetUtxoTotal()
+	total, height, err := GetUtxoTotalAndTrunkHeight()
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(total)
+	fmt.Println(total, height)
 }

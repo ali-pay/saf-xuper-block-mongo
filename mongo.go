@@ -30,8 +30,12 @@ type Count struct {
 }
 
 var counts *Count
+var locker sync.Mutex
 
 func (m *MongoClient) SaveCount(block *utils.InternalBlock) error {
+	locker.Lock()
+	defer locker.Unlock()
+
 	countCol := m.Database.Collection("count")
 	accCol := m.Database.Collection("account")
 
@@ -54,7 +58,6 @@ func (m *MongoClient) SaveCount(block *utils.InternalBlock) error {
 		if cursor != nil {
 			err = cursor.All(nil, &counts.Accounts)
 		}
-
 		//过滤key,减小体积
 		for i, v := range counts.Accounts {
 			counts.Accounts[i] = v.(bson.D).Map()["_id"]
@@ -90,7 +93,7 @@ func (m *MongoClient) SaveCount(block *utils.InternalBlock) error {
 	//统计交易总数
 	counts.TxCount += int64(block.TxCount)
 	//统计全网金额
-	total, err := GetUtxoTotal()
+	total, _, err := GetUtxoTotalAndTrunkHeight()
 	if err != nil {
 		log.Printf("get utxo total failed, height: %d, error: %s", block.Height, err)
 	} else {
@@ -177,19 +180,7 @@ func (m *MongoClient) SaveBlock(block *utils.InternalBlock) error {
 	return err
 }
 
-//var once sync.Once
-
-var two bool
-
 func (m *MongoClient) Save(block *utils.InternalBlock) error {
-
-	//只在启动程序第一次获取到区块的时候进行判断
-	//once.Do(func() { m.GetLackBlocks(block) })
-	//once里面的函数没有执行完成，状态不会置为1，所有只能通过一个标志字段来判断了
-	if !two {
-		two = true
-		m.GetLackBlocks(block)
-	}
 
 	//存统计
 	err := m.SaveCount(block)
@@ -255,6 +246,10 @@ func (m *MongoClient) Close() error {
 func findLacks(heights []int64) []int64 {
 	log.Printf("mongodb's blocks size: %d", len(heights))
 
+	if len(heights) == 0 {
+		return nil
+	}
+
 	lacks := make([]int64, 0)
 
 	var i int64 = 0
@@ -296,7 +291,6 @@ again:
 		}
 		var reply bson.A
 		if cursor != nil {
-			counts = &Count{}
 			err = cursor.All(nil, &reply)
 		}
 		//fmt.Println("reply:", reply)
@@ -370,4 +364,15 @@ again:
 	log.Println("get lack blocks finished")
 	//fmt.Printf("running goroutines: %d\n", p.Running())
 	return nil
+}
+
+//获取数据库中缺少的区块
+func (m *MongoClient) Init() error {
+	_, height, err := GetUtxoTotalAndTrunkHeight()
+	if err != nil {
+		return err
+	}
+	return m.GetLackBlocks(&utils.InternalBlock{
+		Height: height,
+	})
 }

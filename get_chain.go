@@ -15,11 +15,11 @@ var (
 	bcname = "xuper"
 )
 
-func GetUtxoTotal() (int64, error) {
+func GetUtxoTotalAndTrunkHeight() (int64, int64, error) {
 
 	conn, err := grpc.Dial(node, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
 	if err != nil {
-		return -1, err
+		return -1, -1, err
 	}
 	defer conn.Close()
 
@@ -32,16 +32,20 @@ func GetUtxoTotal() (int64, error) {
 	bcStatusPB := &pb.BCStatus{Bcname: bcname}
 	bcStatus, err := client.GetBlockChainStatus(ctx, bcStatusPB)
 	if err != nil {
-		return -1, err
+		return -1, -1, err
 	}
 	if bcStatus == nil {
-		return -1, errors.New("GetBlockChainStatus: the chain is null")
+		return -1, -1, errors.New("GetBlockChainStatus: the chain is null")
 	}
 	if bcStatus.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return -1, errors.New("GetBlockChainStatus: Header.Error is fail")
+		return -1, -1, errors.New("GetBlockChainStatus: Header.Error is fail")
 	}
 
-	return strconv.ParseInt(bcStatus.UtxoMeta.UtxoTotal, 10, 64)
+	total, err := strconv.ParseInt(bcStatus.UtxoMeta.UtxoTotal, 10, 64)
+	if err != nil {
+		return -1, -1, err
+	}
+	return total, bcStatus.Meta.TrunkHeight, nil
 }
 
 func GetBlockByHeight(height int64) (*pb.InternalBlock, error) {

@@ -148,6 +148,10 @@ func (cmd *PubsubClientCommand) Subscribe() {
 
 		node = cmd.DestIP            //节点
 		bcname = requestLocal.Bcname //链名
+		err = mongoClient.Init()     //获取数据库中缺少的区块
+		if err != nil {
+			log.Fatalf("get lack blocks failed, error: %s", err)
+		}
 
 	case "TRANSACTION":
 		requestLocal := &TransactionEventRequest{}
@@ -245,7 +249,7 @@ func (cmd *PubsubClientCommand) Subscribe() {
 			//fmt.Println("status:", reply.GetBlockStatus())
 			//fmt.Println("payload", test.GetBlock())
 
-			//fmt.Println("Recv block:", test.GetBlock().Height)
+			fmt.Println("Recv block:", test.GetBlock().Height)
 			//存数据
 			err = mongoClient.Save(utils.FromInternalBlockPB(test.GetBlock()))
 			if err != nil {
@@ -278,7 +282,9 @@ func main() {
 		Database:   "jy_chain_test",
 		HttpPort:   8081,
 	}
-	cmd.addFlags()
+
+	//注释这句，然后运行程序可以cmd的参数进行测试能否写入数据库
+	//cmd.addFlags()
 
 	port = cmd.HttpPort
 	go run() //开启http服务
