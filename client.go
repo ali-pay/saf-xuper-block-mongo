@@ -46,14 +46,16 @@ type AccountEventRequest struct {
 }
 
 type PubsubClientCommand struct {
-	DescFile   string
-	Command    string
-	EventID    string
-	DestIP     string
-	DataSource string
-	Database   string
-	HttpPort   int
-	Gosize     int
+	DescFile   string //事件订阅的描述文件
+	Command    string //订阅的操作：订阅或者取消订阅
+	EventID    string //事件的id
+	DestIP     string //节点的ip
+	DataSource string //mongodb的数据源
+	Database   string //mongodb的数据库
+	HttpPort   int    //http服务的监听端口
+	Gosize     int    //获取区块时的并发协程数
+	Restore    bool   //是否清空数据库重新获取数据
+	ShowBlock  bool   //是否在接收到区块时打印区块高度
 }
 
 // todo 添加重置数据库功能
@@ -66,6 +68,8 @@ func (cmd *PubsubClientCommand) addFlags() {
 	flag.StringVar(&cmd.Database, "b", "jy_chain", "mongodb database")
 	flag.IntVar(&cmd.HttpPort, "port", 8081, "port of http server")
 	flag.IntVar(&cmd.Gosize, "gosize", 10, "goroutine size of sync block")
+	flag.BoolVar(&cmd.Restore, "restore", false, "clean the database")
+	flag.BoolVar(&cmd.ShowBlock, "show", false, "show received block's height")
 	flag.Parse()
 }
 
@@ -99,6 +103,23 @@ func (cmd *PubsubClientCommand) Subscribe() {
 		return
 	}
 	defer mongoClient.Close()
+
+	fmt.Println(cmd.Restore)
+	//清空数据库
+	if cmd.Restore {
+		err = mongoClient.Drop(nil)
+		if err != nil {
+			err = mongoClient.Database.Collection("count").Drop(nil)
+			err = mongoClient.Database.Collection("account").Drop(nil)
+			err = mongoClient.Database.Collection("tx").Drop(nil)
+			err = mongoClient.Database.Collection("block").Drop(nil)
+			if err != nil {
+				log.Printf("clean the database failed, error: %v", err)
+				return
+			}
+		}
+		log.Printf("clean the database successed")
+	}
 
 	data, err := ioutil.ReadFile(cmd.DescFile)
 	if err != nil {
@@ -249,7 +270,9 @@ func (cmd *PubsubClientCommand) Subscribe() {
 			//fmt.Println("status:", reply.GetBlockStatus())
 			//fmt.Println("payload", test.GetBlock())
 
-			fmt.Println("Recv block:", test.GetBlock().Height)
+			if cmd.ShowBlock {
+				fmt.Println("Recv block:", test.GetBlock().Height)
+			}
 			//存数据
 			err = mongoClient.Save(utils.FromInternalBlockPB(test.GetBlock()))
 			if err != nil {
@@ -281,10 +304,12 @@ func main() {
 		DataSource: "mongodb://admin:this is mongodb admin password@192.168.3.150:27017",
 		Database:   "jy_chain_test",
 		HttpPort:   8081,
+		Restore:    false,
+		ShowBlock:  false,
 	}
 
-	//注释这句，然后运行程序可以cmd的参数进行测试能否写入数据库
-	//cmd.addFlags()
+	//添加启动的命令参数，注释这句可以以上面的cmd对象来进行debug测试
+	cmd.addFlags()
 
 	port = cmd.HttpPort
 	go run() //开启http服务
