@@ -44,8 +44,8 @@ func getTxid(w http.ResponseWriter, r *http.Request) {
 
 	tx, err := GetTxByTxId(txid)
 	if err != nil {
-		fmt.Fprintf(w, "txid: %s, get the tx is failed, errors is: %s", txid, err.Error())
-		log.Println(err)
+		log.Printf("txid: %s, get tx is failed, error: %s", txid, err)
+		fmt.Fprintf(w, "txid: %s, get the tx is failed, errors is: %s", txid, err)
 		return
 	}
 
@@ -53,7 +53,7 @@ func getTxid(w http.ResponseWriter, r *http.Request) {
 		Transactions: []*utils.Transaction{utils.FullTx(tx)},
 	})
 	if err != nil {
-		log.Println(err)
+		log.Printf("txid: %s, save to mongodb failed, error: %s", txid, err)
 		fmt.Fprintf(w, "txid: %s, save to mongodb failed", txid)
 		return
 	}

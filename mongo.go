@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	gosize      = 10        //苟柔婷数量
+	gosize      = 10         //苟柔婷数量
 	mongoClient *MongoClient //全局的mongodb对象
 )
 
@@ -92,7 +92,7 @@ func (m *MongoClient) SaveCount(block *utils.InternalBlock) error {
 	//统计全网金额
 	total, err := GetUtxoTotal()
 	if err != nil {
-		log.Println(err)
+		log.Printf("get utxo total failed, height: %d, error: %s", block.Height, err)
 	} else {
 		counts.CoinCount = total
 	}
@@ -141,6 +141,7 @@ func (m *MongoClient) SaveTx(block *utils.InternalBlock) error {
 				{"coinbase", tx.Coinbase},
 				{"voteCoinbase", tx.VoteCoinbase},
 				{"state", state},
+				{"proposer", block.Proposer},
 			},
 			&options.ReplaceOptions{Upsert: &up})
 	}
@@ -252,6 +253,8 @@ func (m *MongoClient) Close() error {
 
 //找出缺少的区块
 func findLacks(heights []int64) []int64 {
+	log.Printf("mongodb's blocks size: %d", len(heights))
+
 	lacks := make([]int64, 0)
 
 	var i int64 = 0
@@ -267,11 +270,12 @@ func findLacks(heights []int64) []int64 {
 		//fmt.Println("heights:", heights)
 	}
 	//fmt.Println("lacks:", lacks)
+	log.Printf("lack blocks size: %d", len(lacks))
 	return lacks
 }
 
 func (m *MongoClient) GetLackBlocks(block *utils.InternalBlock) error {
-
+	log.Println("start get lack blocks")
 	blockCol := m.Database.Collection("block")
 
 	//获取数据库中最后的区块高度
@@ -324,13 +328,13 @@ again:
 		func(height int64) {
 			iblock, err := GetBlockByHeight(height)
 			if err != nil {
-				log.Printf("GetBlockByHeight: %d, error: %s", height, err)
+				log.Printf("get block by height failed, height: %d, error: %s", height, err)
 				return
 			}
 
 			err = m.Save(utils.FromInternalBlockPB(iblock))
 			if err != nil {
-				log.Println(err)
+				log.Printf("save block to mongodb failed, height: %d, error: %s", height, err)
 				return
 			}
 			//fmt.Println("succeed get lack block:", height)
@@ -363,7 +367,7 @@ again:
 	}
 
 	wg.Wait()
-	//fmt.Println("get lack blocks finished")
+	log.Println("get lack blocks finished")
 	//fmt.Printf("running goroutines: %d\n", p.Running())
 	return nil
 }

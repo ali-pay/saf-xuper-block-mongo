@@ -245,11 +245,11 @@ func (cmd *PubsubClientCommand) Subscribe() {
 			//fmt.Println("status:", reply.GetBlockStatus())
 			//fmt.Println("payload", test.GetBlock())
 
-			fmt.Println("Recv block:", test.GetBlock().Height)
+			//fmt.Println("Recv block:", test.GetBlock().Height)
 			//存数据
 			err = mongoClient.Save(utils.FromInternalBlockPB(test.GetBlock()))
 			if err != nil {
-				log.Println(err)
+				log.Printf("save block to mongodb failed, height: %d, error: %s", test.GetBlock().Height, err)
 			}
 
 		case pb.EventType_ACCOUNT:
