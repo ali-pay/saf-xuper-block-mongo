@@ -1,3 +1,9 @@
+# 如果编译发生错误
+
+**1. jason-cn-dev：将该字段改成：ali-pay**
+
+**2. xuperdata：将该字段改成：saf-xuper-block-mongo**
+
 # Mongodb
 
 ## Docker-Mongodb安装
